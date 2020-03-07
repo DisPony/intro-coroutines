@@ -2,6 +2,14 @@ package contributors
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.features.defaultRequest
+import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.logging.Logging
+import io.ktor.client.request.get
+import io.ktor.client.request.headers
+import io.ktor.http.URLProtocol
 import io.reactivex.Flowable
 import io.reactivex.Single
 import io.reactivex.Observable
@@ -17,16 +25,9 @@ import retrofit2.http.Path
 import java.util.*
 
 interface GitHubService {
-    @GET("orgs/{org}/repos?per_page=100")
-    fun getOrgReposCall(
-        @Path("org") org: String
-    ): Call<List<Repo>>
+    suspend fun getOrgRepos(org: String): List<Repo>
 
-    @GET("repos/{owner}/{repo}/contributors?per_page=100")
-    fun getRepoContributorsCall(
-        @Path("owner") owner: String,
-        @Path("repo") repo: String
-    ): Call<List<User>>
+    suspend fun getRepoContributors(owner: String, repo: String): List<User>
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -47,24 +48,29 @@ data class RequestData(
     val org: String
 )
 
-fun createGitHubService(username: String, password: String): GitHubService {
+fun createGithubService(username: String, password: String): GitHubService {
     val authToken = "Basic " + Base64.getEncoder().encode("$username:$password".toByteArray()).toString(Charsets.UTF_8)
-    val httpClient = OkHttpClient.Builder()
-        .addInterceptor { chain ->
-            val original = chain.request()
-            val builder = original.newBuilder()
-                .header("Accept", "application/vnd.github.v3+json")
-                .header("Authorization", authToken)
-            val request = builder.build()
-            chain.proceed(request)
+    return object : GitHubService {
+        private val client = HttpClient(CIO) {
+            install(JsonFeature)
+            install(Logging)
+            defaultRequest {
+                url {
+                    protocol = URLProtocol.HTTPS
+                    host = "api.github.com"
+                }
+                headers {
+                    append("Append", "application/vnd.github.v3+json")
+                    append("Authorization", authToken)
+                }
+            }
         }
-        .build()
 
-    val retrofit = Retrofit.Builder()
-        .baseUrl("https://api.github.com")
-        .addConverterFactory(JacksonConverterFactory.create(jacksonObjectMapper()))
-        .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-        .client(httpClient)
-        .build()
-    return retrofit.create(GitHubService::class.java)
+        override suspend fun getOrgRepos(org: String): List<Repo> =
+            client.get(path = "orgs/$org/repos?per_page=100")
+
+        override suspend fun getRepoContributors(owner: String, repo: String): List<User> =
+            client.get(path = "repos/$owner/$repo/contributors?per_page=100")
+
+    }
 }
