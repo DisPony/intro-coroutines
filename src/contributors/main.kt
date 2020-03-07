@@ -2,7 +2,7 @@ package contributors
 
 fun main() {
     setDefaultFontSize(18f)
-    ContributorsUI().apply {
+    ContributorsView().apply {
         pack()
         setLocationRelativeTo(null)
         isVisible = true
