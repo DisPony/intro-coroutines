@@ -1,7 +1,5 @@
 package contributors
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.defaultRequest
@@ -10,18 +8,7 @@ import io.ktor.client.features.logging.Logging
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.URLProtocol
-import io.reactivex.Flowable
-import io.reactivex.Single
-import io.reactivex.Observable
-//import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
-import okhttp3.OkHttpClient
-import retrofit2.Call
-import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
-import retrofit2.converter.jackson.JacksonConverterFactory
-import retrofit2.http.GET
-import retrofit2.http.Path
+
 import java.util.*
 
 interface GitHubService {
@@ -30,13 +17,13 @@ interface GitHubService {
     suspend fun getRepoContributors(owner: String, repo: String): List<User>
 }
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+
 data class Repo(
     val id: Long,
     val name: String
 )
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+
 data class User(
     val login: String,
     val contributions: Int
