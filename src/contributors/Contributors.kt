@@ -3,6 +3,10 @@ package contributors
 import contributors.Contributors.LoadingStatus.*
 import contributors.Variant.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.swing.Swing
 import tasks.*
 import java.awt.event.ActionListener
@@ -18,7 +22,8 @@ enum class Variant {
 //    NOT_CANCELLABLE,  // Request6NotCancellable
 //    PROGRESS,         // Request6Progress
     CHANNELS,          // Request7Channels
-    FLOWS
+    FLOWS,
+    REACTIVE
 }
 
 interface Contributors: CoroutineScope {
@@ -73,7 +78,15 @@ interface Contributors: CoroutineScope {
                     }
                 }.setUpCancellation()
             }
+            REACTIVE -> {
+                 loadContributorsReactive(service, req)
+                     .onEach { updateResults(it, startTime, false) }
+                     .onCompletion { updateLoadingStatus(COMPLETED, startTime); setActionsStatus(newLoadingEnabled = true) }
+                     .launchIn(this)
+                     .setUpCancellation()
+            }
         }
+
     }
 
     private enum class LoadingStatus { COMPLETED, CANCELED, IN_PROGRESS }
