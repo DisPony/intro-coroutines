@@ -163,3 +163,42 @@ class ContributorsView : JFrame("GitHub Contributors"), CoroutineScope {
 
 }
 
+
+fun JPanel.addLabeled(label: String, component: JComponent) {
+    add(JLabel(label), GridBagConstraints().apply {
+        gridx = 0
+        insets = INSETS
+    })
+    add(component, GridBagConstraints().apply {
+        gridx = 1
+        insets = INSETS
+        anchor = GridBagConstraints.WEST
+        fill = GridBagConstraints.HORIZONTAL
+        weightx = 1.0
+    })
+}
+
+fun JPanel.addWide(component: JComponent, constraints: GridBagConstraints.() -> Unit = {}) {
+    add(component, GridBagConstraints().apply {
+        gridx = 0
+        gridwidth = 2
+        insets = INSETS
+        constraints()
+    })
+}
+
+fun JPanel.addWideSeparator() {
+    addWide(JSeparator()) {
+        fill = GridBagConstraints.HORIZONTAL
+    }
+}
+
+fun setDefaultFontSize(size: Float) {
+    for (key in UIManager.getLookAndFeelDefaults().keys.toTypedArray()) {
+        if (key.toString().toLowerCase().contains("font")) {
+            val font = UIManager.getDefaults().getFont(key) ?: continue
+            val newFont = font.deriveFont(size)
+            UIManager.put(key, newFont)
+        }
+    }
+}
