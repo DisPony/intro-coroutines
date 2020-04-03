@@ -3,6 +3,7 @@ package contributors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.awt.Dimension
 import java.awt.GridBagConstraints
@@ -27,7 +28,7 @@ class ContributorsView : JFrame("GitHub Contributors"), CoroutineScope {
     private val username = JTextField(20)
     private val password = JPasswordField(20)
     private val org = JTextField(20)
-    private val variant = JComboBox<Variant>(Variant.values())
+//    private val variant = JComboBox<Variant>(Variant.values())
     private val load = JButton("Load contributors")
     private val cancel = JButton("Cancel").apply { isEnabled = false }
 
@@ -55,7 +56,7 @@ class ContributorsView : JFrame("GitHub Contributors"), CoroutineScope {
             addLabeled("Password/Token", password)
             addWideSeparator()
             addLabeled("Organization", org)
-            addLabeled("Variant", variant)
+//            addLabeled("Variant", variant)
             addWideSeparator()
             addWide(JPanel().apply {
                 add(load)
@@ -98,6 +99,7 @@ class ContributorsView : JFrame("GitHub Contributors"), CoroutineScope {
             for (status in viewModel.loadingStatus.openSubscription()) {
                 loadingStatus.text = "$status"
                 loadingStatus.icon = if (status == LoadingStatus.IN_PROGRESS) loadingIcon else null
+                if(status == LoadingStatus.CANCELED) loadingTime.text = ""
             }
         }
 
@@ -118,9 +120,13 @@ class ContributorsView : JFrame("GitHub Contributors"), CoroutineScope {
                 cancel.isEnabled = cancelable
             }
         }
+
+        launch {
+            viewModel.newLoadAvailable.collect { load.isEnabled = it }
+        }
     }
 
-    private fun getSelectedVariant(): Variant = variant.getItemAt(variant.selectedIndex)
+//    private fun getSelectedVariant(): Variant = variant.getItemAt(variant.selectedIndex)
 
     private fun updateContributors(users: List<User>) {
         if (users.isNotEmpty()) {
@@ -135,7 +141,7 @@ class ContributorsView : JFrame("GitHub Contributors"), CoroutineScope {
     }
 
     private fun getParams(): Params {
-        return Params(username.text, password.password.joinToString(""), org.text, getSelectedVariant())
+        return Params(username.text, password.password.joinToString(""), org.text, Variant.REACTIVE)
     }
 
     private fun saveParams() {
@@ -152,8 +158,47 @@ class ContributorsView : JFrame("GitHub Contributors"), CoroutineScope {
         username.text = params.username
         password.text = params.password
         org.text = params.org
-        variant.selectedIndex = params.variant.ordinal
+//        variant.selectedIndex = params.variant.ordinal
     }
 
 }
 
+
+fun JPanel.addLabeled(label: String, component: JComponent) {
+    add(JLabel(label), GridBagConstraints().apply {
+        gridx = 0
+        insets = INSETS
+    })
+    add(component, GridBagConstraints().apply {
+        gridx = 1
+        insets = INSETS
+        anchor = GridBagConstraints.WEST
+        fill = GridBagConstraints.HORIZONTAL
+        weightx = 1.0
+    })
+}
+
+fun JPanel.addWide(component: JComponent, constraints: GridBagConstraints.() -> Unit = {}) {
+    add(component, GridBagConstraints().apply {
+        gridx = 0
+        gridwidth = 2
+        insets = INSETS
+        constraints()
+    })
+}
+
+fun JPanel.addWideSeparator() {
+    addWide(JSeparator()) {
+        fill = GridBagConstraints.HORIZONTAL
+    }
+}
+
+fun setDefaultFontSize(size: Float) {
+    for (key in UIManager.getLookAndFeelDefaults().keys.toTypedArray()) {
+        if (key.toString().toLowerCase().contains("font")) {
+            val font = UIManager.getDefaults().getFont(key) ?: continue
+            val newFont = font.deriveFont(size)
+            UIManager.put(key, newFont)
+        }
+    }
+}

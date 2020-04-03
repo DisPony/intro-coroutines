@@ -2,10 +2,8 @@ package contributors
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.*
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
+import sun.applet.Main
 import tasks.loadContributorsReactive
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration
@@ -29,6 +27,12 @@ class ContributorsViewModel : CoroutineScope {
     val timeSpent: BroadcastChannel<Duration> = ConflatedBroadcastChannel()
 
     val isCancelable: BroadcastChannel<Boolean> = ConflatedBroadcastChannel()
+
+    val newLoadAvailable = isCancelable.asFlow().map { !it }
+
+    init {
+        loadingStatus.sendBlocking(LoadingStatus.WAITING)
+    }
 
     @ExperimentalTime
     fun onStartLoading(req: RequestData) {
@@ -59,6 +63,5 @@ class ContributorsViewModel : CoroutineScope {
             loadingStatus.send(LoadingStatus.WAITING)
         }
     }
-
 
 }
